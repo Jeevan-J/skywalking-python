@@ -19,7 +19,7 @@ import logging
 import pkgutil
 import re
 import traceback
-
+import importlib
 import sys
 
 if sys.version_info < (3, 8):
@@ -56,7 +56,10 @@ def install():
             logger.info("plugin %s is disabled and thus won't be installed", modname)
             continue
         logger.debug('installing plugin %s', modname)
-        plugin = importer.find_module(modname).load_module(modname)
+        # plugin = importer.find_module(modname).load_module(modname)
+        spec = importer.find_spec(modname)
+        plugin =  importlib.util.module_from_spec(spec) 
+        spec.loader.exec_module(plugin)
 
         # todo: refactor the version checker, currently it doesn't really work as intended
         supported = pkg_version_check(plugin)
@@ -73,12 +76,13 @@ def install():
         try:
             plugin.install()
             logger.debug('Successfully installed plugin %s', modname)
-        except Exception:
+        except Exception as exc:
             logger.warning(
                 'Plugin %s failed to install, please ignore this warning '
                 'if the package is not used in your application.',
                 modname
             )
+            logger.warning(exc)
             traceback.print_exc() if logger.isEnabledFor(logging.DEBUG) else None
 
 
